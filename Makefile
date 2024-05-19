@@ -1,5 +1,7 @@
+include ext/ext.mk
+
 CXX = clang++
-MODE = -O3
+MODE = -g3
 _OS = $(shell uname)
 _OBJ = libWFC
 OBJ = 
@@ -7,22 +9,22 @@ OBJ =
 SRC = $(wildcard src/**/*.cpp) $(wildcard src/*.cpp)
 
 INCLUDE = -Iinclude -Isrc
-CXXFLAGS = -std=c++20 $(MODE) 
+CXXFLAGS = -std=c++20 $(MODE) $(EXT_CFLAGS) -lsdl2 -lsdl2_image
 
-LDFLAGS = 
+LDFLAGS = $(EXT_LDFLAGS)
 
 ifeq ($(_OS), Darwin)
 	CXX = clang++
-	OBJ = $(_OBJ).dylib
-	LDFLAGS += -dynamiclib -fPIC
+	OBJ = $(_OBJ)
+# LDFLAGS += -dynamiclib -fPIC
 else ifeq ($(_OS), Linux) 
 	CXX = g++
-	OBJ = $(_OBJ).so
-	LDFLAGS += -shared -fPIC
+	OBJ = $(_OBJ)
+# LDFLAGS += -shared -fPIC
 else ifeq ($(OS), Windows_NT)
 	CXX = g++
-	OBJ = $(_OBJ).dll
-	LDFLAGS += -shared -fPIC
+	OBJ = $(_OBJ).exe
+# LDFLAGS += -shared -fPIC
 endif
 
 OBJS = $(addsuffix .o, $(basename $(notdir $(SRC))))

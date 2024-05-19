@@ -1,0 +1,38 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-c",
+      "-Iinclude",
+      "-Isrc",
+      "-std=c++20",
+      "-g3",
+      "-Iext/include/ImLog",
+      "-Iext/include/FS",
+      "-o",
+      "Visual.o",
+      "src/Visual.cpp"
+    ],
+    "directory": "/Users/jigneshpatel/Dev/cpp/WFC",
+    "file": "/Users/jigneshpatel/Dev/cpp/WFC/src/Visual.cpp",
+    "output": "/Users/jigneshpatel/Dev/cpp/WFC/Visual.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-c",
+      "-Iinclude",
+      "-Isrc",
+      "-std=c++20",
+      "-g3",
+      "-Iext/include/ImLog",
+      "-Iext/include/FS",
+      "-o",
+      "main.o",
+      "src/main.cpp"
+    ],
+    "directory": "/Users/jigneshpatel/Dev/cpp/WFC",
+    "file": "/Users/jigneshpatel/Dev/cpp/WFC/src/main.cpp",
+    "output": "/Users/jigneshpatel/Dev/cpp/WFC/main.o"
+  }
+]
