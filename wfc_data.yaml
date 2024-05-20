@@ -2,17 +2,17 @@ Version: "0.1a"
 ImageFolderBasePath: "images"
 OBJECTS:
 	- ID: "Straight"
-    ROTATION: [0, 1, 2, 3]
+    ROTATION: 10
     MASK: [1, 2, 1, 2]
   # - ID: "T-JN"
-  #   ROTATION: [0, 1, 2, 3]
+  #   ROTATION: 15
   #   MASK: [2, 1, 2, 2]
   - ID: "CrossRoad"
-    ROTATION: [0]
+    ROTATION: 1
     MASK: [2, 2, 2, 2]
   - ID: "Empty"
-    ROTATION: [1]
+    ROTATION: 1
     MASK: [1, 1, 1, 1]
   - ID: "RightTurn"
-    ROTATION: [0, 1, 2, 3]
+    ROTATION: 15
     MASK: [2, 1, 1, 2]
