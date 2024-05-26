@@ -9,9 +9,9 @@ OBJ =
 SRC = $(wildcard src/**/*.cpp) $(wildcard src/*.cpp)
 
 INCLUDE = -Iinclude -Isrc
-CXXFLAGS = -std=c++20 $(MODE) $(EXT_CFLAGS) -lsdl2 -lsdl2_image
+CXXFLAGS = -std=c++20 $(MODE) $(EXT_CFLAGS)
 
-LDFLAGS = $(EXT_LDFLAGS)
+LDFLAGS = $(EXT_LDFLAGS) -lsdl2 -lsdl2_image -lyaml-cpp
 
 ifeq ($(_OS), Darwin)
 	CXX = clang++
@@ -37,20 +37,9 @@ OBJS = $(addsuffix .o, $(basename $(notdir $(SRC))))
 	@$(CXX) -c -o $@ $< $(INCLUDE) $(CXXFLAGS)
 	@echo "Built $@"
 
-all: $(OBJ)
-	@rm $(OBJS)
-
 $(OBJ):	$(OBJS)
-	@$(CXX) -o $(OBJ) $^ $(LDFLAGS)
+	@$(CXX) -o $(OBJ) $^ $(LDFLAGS) $(MODE)
 	@cp $(OBJ) bin/$(OBJ)
 
 clean:
 	@rm -f $(OBJS) $(OBJ)
-
-add:
-	@cpp-pkgm -p $(PWD) WFC 0 4
-	
-update:
-	@cpp-pkgm -r WFC
-	@cpp-pkgm -p $(PWD) WFC 0 4
-

@@ -16,7 +16,7 @@ namespace WFC {
 
 	class Visual {
 		public:
-			 Visual(int Width, int Height, const char* title);
+			 Visual(int Size, const char* title);
 			~Visual();
 
 			void Render();

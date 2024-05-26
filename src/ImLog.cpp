@@ -46,6 +46,7 @@ namespace ImLog {
         if (!text.empty()) {
             ImLogOut out;
             out << ImLogColor::Red << text;
+            Log(out);
         }
 
         API::assertFunc(false);
