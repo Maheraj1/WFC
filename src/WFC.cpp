@@ -13,15 +13,15 @@
 
 const std::string currentVersion = "0.1a";
 
-#define TILE_RIGHT(obj) (obj + sizeof(WFC_Grid_Object))
-#define TILE_LEFT(obj)  (obj - sizeof(WFC_Grid_Object))
-#define TILE_UP(obj)    (obj - sizeof(WFC_Grid_Object) * GRID_SIZE)
-#define TILE_DOWN(obj)  (obj + sizeof(WFC_Grid_Object) * GRID_SIZE)
+#define TILE_RIGHT(obj) (obj + 1		)
+#define TILE_LEFT(obj)  (obj - 1		)
+#define TILE_UP(obj)    (obj - GRID_SIZE)
+#define TILE_DOWN(obj)  (obj + GRID_SIZE)
 
-#define CHECK_TILE_RIGHT(obj) ((obj->i+1) % GRID_SIZE) != 0
+#define CHECK_TILE_RIGHT(obj) ((obj->i) % GRID_SIZE) != (GRID_SIZE - 1)
 #define CHECK_TILE_LEFT(obj)  ((obj->i) % GRID_SIZE) != 0
-#define CHECK_TILE_UP(obj)    (obj->i) < GRID_SIZE
-#define CHECK_TILE_DOWN(obj)  (obj->i) >= GRID_SIZE * (GRID_SIZE - 1)
+#define CHECK_TILE_UP(obj)    (obj->i) >= GRID_SIZE
+#define CHECK_TILE_DOWN(obj)  (obj->i) <= GRID_SIZE * (GRID_SIZE - 1)
 
 // Checking that object has not collapsed
 #define WFC_CHECK(I)\
@@ -167,7 +167,7 @@ namespace WFC {
 
 			std::uniform_int_distribution<uint64_t> tileToCollapse_uid(0, objs.size());
 			std::mt19937_64 engine;
-			WFC_Grid_Object* selection = objs[tileToCollapse_uid(engine)];
+			selection = objs[tileToCollapse_uid(engine)];
 
 			// Select tiles form the available options
 			
@@ -248,16 +248,16 @@ namespace WFC {
 
 		std::vector<uint64_t> possible_tiles;
 		
-		// I don't think this is good for performance like it can be O(n^5)
+		// I don't think this is good for performance like it can be O(n^5) or O(n)
 		for (int ii = 0; ii < WFC::wfc->m_objs.size(); ii++) {
 			for (int i = 0; i < tiles[0].size(); i++) {
 				for (int j = 0; j < tiles[1].size(); j++) {
 					for (int k = 0; k < tiles[2].size(); k++) {
 						for (int l = 0; l < tiles[3].size(); l++) {
-							if (!((WFC::wfc->m_objs[ii].mask[0] & WFC::wfc->m_objs[tiles[0][i]].mask[0]) &&
-								  (WFC::wfc->m_objs[ii].mask[1] & WFC::wfc->m_objs[tiles[1][i]].mask[1]) && 
-								  (WFC::wfc->m_objs[ii].mask[2] & WFC::wfc->m_objs[tiles[2][i]].mask[2]) &&
-								  (WFC::wfc->m_objs[ii].mask[3] & WFC::wfc->m_objs[tiles[3][i]].mask[3])))
+							if (!((WFC::wfc->m_objs[ii].mask[0] & tiles[0][i]) &&
+								  (WFC::wfc->m_objs[ii].mask[1] & tiles[1][i]) && 
+								  (WFC::wfc->m_objs[ii].mask[2] & tiles[2][i]) &&
+								  (WFC::wfc->m_objs[ii].mask[3] & tiles[3][i])))
 								continue;
 							possible_tiles.push_back(WFC::wfc->m_objs[ii].index);
 						}
@@ -282,24 +282,25 @@ namespace WFC {
 			return tiles;
 		}
 
-		uint16_t neighbours_side = 0;
+		uint16_t toCheckSide = 0;
 		// Add 1 (1 << 0) OR (true) to the side mask
-		neighbours_side |= (main_side != Side::RIGHT && CHECK_TILE_RIGHT(Neighbour)) ? 1 << 0: 0;
-		neighbours_side |= (main_side != Side::UP	 && CHECK_TILE_UP(Neighbour))	 ? 1 << 1: 0;
-		neighbours_side |= (main_side != Side::LEFT  && CHECK_TILE_LEFT(Neighbour))	 ? 1 << 2: 0;
-		neighbours_side |= (main_side != Side::DOWN  && CHECK_TILE_DOWN(Neighbour))	 ? 1 << 3: 0;
+		toCheckSide |= (main_side != Side::RIGHT && CHECK_TILE_RIGHT(Neighbour)) ? 1 << 0: 0;
+		toCheckSide |= (main_side != Side::UP	 && CHECK_TILE_UP(Neighbour))	 ? 1 << 1: 0;
+		toCheckSide |= (main_side != Side::LEFT  && CHECK_TILE_LEFT(Neighbour))	 ? 1 << 2: 0;
+		toCheckSide |= (main_side != Side::DOWN  && CHECK_TILE_DOWN(Neighbour))	 ? 1 << 3: 0;
 
 		for (int i = 0; i < wfc->m_objs.size(); i++) {
 			uint16_t sides = 0;
+			uint64_t mask = 0;
 			// Right Side
-			if (neighbours_side & 1) {
+			if (toCheckSide & 1) {
 				auto obj = TILE_RIGHT(Neighbour);
 				WFC_CHECK(0)
 			} else {
 				sides |= 1 << 0;
 			}
 			// UP
-			if (neighbours_side & 2) {
+			if (toCheckSide & 2) {
 				auto obj = TILE_UP(Neighbour);
 				WFC_CHECK(1)
 			} else {
@@ -307,7 +308,7 @@ namespace WFC {
 			}
 
 			// Left Side
-			if (neighbours_side & 4) {
+			if (toCheckSide & 4) {
 				auto obj = TILE_LEFT(Neighbour);
 				WFC_CHECK(2)
 			} else {
@@ -315,15 +316,17 @@ namespace WFC {
 			}
 
 			// DOWN
-			if (neighbours_side & 8) {
+			if (toCheckSide & 8) {
 				auto obj = TILE_DOWN(Neighbour);
 				WFC_CHECK(3)
 			} else {
 				sides |= 1 << 3;
 			}
+
+			mask = wfc->m_objs[i].mask[(uint)main_side];
 			
 			if (sides == 15)
-				tiles.push_back(i);
+				tiles.push_back(mask);
 		}
 
 		return tiles;
@@ -334,7 +337,7 @@ namespace WFC {
 	}
 
 	WFC_Grid_Object::WFC_Grid_Object() {
-		static int _i = 0;
+		static int _i = -1;
 		_i++;
 		i = _i;
 	}

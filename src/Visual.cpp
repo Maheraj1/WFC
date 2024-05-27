@@ -18,14 +18,11 @@ namespace WFC {
 	static int ScreenSize = 0;
 
 	void gridToSdl(const std::pair<uint, uint> gridPoint, int gridSize,
-		 int screenWidth, int screenHeight, std::pair<uint, uint> sdl2Point) {
-		// Calculate the offset from the top-left corner of the screen
-		int xOffset = gridPoint.first * gridSize;
-		int yOffset = screenHeight - (gridPoint.second + 1) * gridSize;
+		 int screenSize, std::pair<uint, uint>& sdl2Point) {
 
 		// Return the SDL coordinate
-		sdl2Point.first = xOffset;
-		sdl2Point.second = yOffset;
+		sdl2Point.first  = gridPoint.first  * ((screenSize+GRID_SIZE) / GRID_SIZE);
+		sdl2Point.second = gridPoint.second * ((screenSize+GRID_SIZE) / GRID_SIZE);
 	}
 
 	Visual::Visual(int Size, const char* title) {
@@ -59,11 +56,11 @@ namespace WFC {
 				SDL_Rect SrcRect {0, 0, r_images[j].size[0], r_images[j].size[1]};
 
 				std::pair<uint, uint> sdlPoint = std::make_pair(0, 0);
-				gridToSdl(std::make_pair(i % GRID_SIZE, i / GRID_SIZE), GRID_SIZE, ScreenSize, ScreenSize, sdlPoint);
+				gridToSdl(std::make_pair(i % GRID_SIZE, i / GRID_SIZE), GRID_SIZE, ScreenSize, sdlPoint);
 
 				SDL_Rect DstRect {
 					static_cast<int>(sdlPoint.first), static_cast<int>(sdlPoint.second),
-					r_images[j].size[0], r_images[j].size[1]
+					ScreenSize/(GRID_SIZE), ScreenSize/(GRID_SIZE)
 				};
 
 				SDL_RenderCopy(renderer, r_images[j].tex, &SrcRect, &DstRect);

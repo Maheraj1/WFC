@@ -10,7 +10,7 @@
 
 namespace WFC {
 
-	enum class Side {
+	enum class Side: uint {
 		RIGHT, UP, LEFT, DOWN
 	};
 

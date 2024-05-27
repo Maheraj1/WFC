@@ -4,9 +4,6 @@ OBJECTS:
   - ID: "Straight"
     ROTATION: 10
     MASK: [1, 2, 1, 2]
-  - ID: "T-JN"
-    ROTATION: 15
-    MASK: [2, 1, 2, 2]
   - ID: "CrossRoad"
     ROTATION: 1
     MASK: [2, 2, 2, 2]

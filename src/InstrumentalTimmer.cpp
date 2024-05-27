@@ -62,7 +62,7 @@ namespace WFC {
 		m_OutputStream.flush();
 	}
 
-	static Profile_Instrument& Get()
+	Profile_Instrument& Profile_Instrument::Get()
 	{
 		static Profile_Instrument instance;
 		return instance;
