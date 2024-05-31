@@ -6,7 +6,7 @@
 		{
 			"label": "Build",
 			"type": "shell",
-			"command": "make clean && make -j2",
+			"command": "make clean && make -j4",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			}

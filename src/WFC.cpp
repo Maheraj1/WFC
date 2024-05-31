@@ -1,6 +1,7 @@
 #include "WFC.hpp"
 
 #include "ImLog.hpp"
+#include "InstrumentalTimmer.hpp"
 #include "Visual.hpp"
 #include "yaml-cpp/yaml.h"
 #include <__random/uniform_random_bit_generator.h>
@@ -10,14 +11,20 @@
 #include <filesystem>
 #include <limits>
 #include <random>
+#include <thread>
 
 const std::string currentVersion = "0.1a";
+using namespace std::chrono_literals;
 
+#define ADD_TO_MASK_AND_SIDE(_side) sides |= 1 << _side;mask |= wfc->m_objs[i].mask[(uint)_side]
+
+// Get tile of the corresponding side
 #define TILE_RIGHT(obj) (obj + 1		)
 #define TILE_LEFT(obj)  (obj - 1		)
 #define TILE_UP(obj)    (obj - GRID_SIZE)
 #define TILE_DOWN(obj)  (obj + GRID_SIZE)
 
+// Checking that the corresponding sides are valid (to avoid over access memory)
 #define CHECK_TILE_RIGHT(obj) ((obj->i) % GRID_SIZE) != (GRID_SIZE - 1)
 #define CHECK_TILE_LEFT(obj)  ((obj->i) % GRID_SIZE) != 0
 #define CHECK_TILE_UP(obj)    (obj->i) >= GRID_SIZE
@@ -27,6 +34,8 @@ const std::string currentVersion = "0.1a";
 #define WFC_CHECK(I)\
 if (obj->wfc_obj) {\
 	sides |= obj->wfc_obj->mask[I] & wfc->m_objs[i].mask[I] ? 1 << I : 0;\
+} else {\
+ADD_TO_MASK_AND_SIDE(I);\
 }
 
 namespace WFC {
@@ -46,8 +55,7 @@ namespace WFC {
 			}
 
 			if (visual && visualObj) {
-				visualObj->r_images.push_back({});
-				visualObj->r_images.back().Generate(
+				Image::Generate(
 					path + std::filesystem::path::preferred_separator + obj["ID"].as<std::string>() + ext
 				);
 				objs[i].index = i;
@@ -95,8 +103,7 @@ namespace WFC {
 		LoadWFCObjects(m_objs, mainFile, _visual, i_fp, visual);
 
 		if (_visual) {
-			visual->r_images.push_back({});
-			visual->r_images.back().Generate(
+			Image::Generate(
 				i_fp.string() + std::filesystem::path::preferred_separator + "Empty.png"
 			);
 		}
@@ -105,64 +112,74 @@ namespace WFC {
 	WFC::~WFC() {}
 
 	void WFC::Start() {
+		{
+			// PROFILE_SCOPE("Setting Base Entropy");
+			for (int i = 0; i < grid.size(); i++) {
+				grid[i].entropy = m_objs.size();
+			}
+		}
+		START_SESSION("WFC Main");
+		{
+			// PROFILE_SCOPE("Collapse Algorithm");
+			
+			Collapse(true);
 
-		for (int i = 0; i < grid.size(); i++) {
-			grid[i].entropy = m_objs.size();
+			for (int i = 1; i < grid.size(); i++) {
+				Collapse();
+			}
 		}
 
-		Collapse(true);
-
-		for (int i = 1; i < grid.size(); i++) {
-			Collapse();
-		}
+		END_SESSION;
 	}
 
 	void WFC::Collapse(bool skipSort) {
+		PROFILE_FUNC();
 		std::vector<WFC_Grid_Object*> objs;
-		objs.resize(grid.size());
+		{
+			// PROFILE_SCOPE("Collapse Begin");
+			objs.resize(grid.size());
 
-		// copy into vector
-		for (int i = 0; i < grid.size(); i++) {
-			objs[i] = &grid[i];
-			if (skipSort)
-				objs[i]->entropy = m_objs.size();
-		}
+			int offset = 0;
 
-		if (!skipSort) {
-			std::sort(objs.begin(), objs.end(), [](WFC_Grid_Object* a, WFC_Grid_Object* b) 
-				{return a->getEntropy() < b->getEntropy();}
-			);
-		}
-		
-		ImLog::ImLogOut out;
-		uint current = 0;
-		for (int i = 0; i < objs.size(); i++) {
-			uint e = objs[i]->getEntropy();
-			out << std::to_string(e) << " ";
-			current = e;
-		}
-		out << ImLog::ImLogColor::None;
-		ImLog::Log(out);
-		
-		uint entropy = objs[0]->getEntropy();
-		
-		if (entropy == 0) // we have no other tiles to collapse
-			return;
-		
-		std::size_t remove_i = grid.size();
-		
-		for (int i = 1; i < grid.size(); i++) {
-			if (objs[i]->getEntropy() != entropy) {
-				remove_i = i;
-				break;
+			// copy into vector
+			for (int i = 0; i < grid.size(); i++) {
+				if (grid[i].entropy == 0) {
+					offset++;
+					continue;
+				}
+				objs[i - offset] = &grid[i];
+				if (skipSort)
+					objs[i]->entropy = m_objs.size();
 			}
+			objs.resize(objs.size() - offset);
+
+			if (!skipSort) {
+				std::sort(objs.begin(), objs.end(), [](WFC_Grid_Object* a, WFC_Grid_Object* b) 
+					{return a->getEntropy() < b->getEntropy();}
+				);
+			}
+			
+			uint entropy = objs[0]->getEntropy();
+			
+			if (entropy == 0) // we have no other tiles to collapse
+				return;
+			
+			std::size_t remove_i = grid.size();
+			
+			for (int i = 1; i < grid.size(); i++) {
+				if (objs[i]->getEntropy() != entropy) {
+					remove_i = i;
+					break;
+				}
+			}
+			
+			objs.resize(remove_i);
 		}
-		
-		objs.resize(remove_i);
 		
 		WFC_Grid_Object* selection = nullptr;
 		
 		{
+			PROFILE_SCOPE("Tile Selection");
 			// Select one object tile from list of similar entropy
 
 			std::uniform_int_distribution<uint64_t> tileToCollapse_uid(0, objs.size());
@@ -171,35 +188,35 @@ namespace WFC {
 
 			// Select tiles form the available options
 			
-			std::uniform_int_distribution<uint64_t> optionsOfTiles_uid(0, selection->entropy-1);
+			std::uniform_int_distribution<uint64_t> optionsOfTiles_uid(0, selection->getEntropy()-1);
 			uint64_t selection_tile = optionsOfTiles_uid(engine);
 
 			auto tiles = selection->computePossibleTiles();
 			
-			std::uniform_int_distribution<uint64_t> tile_selection_uid(0, selection->getEntropy());
-			std::size_t tile_selection = tile_selection_uid(engine);
-			
 			// tile collapsed
-			selection->wfc_obj = &m_objs[tile_selection];
+			selection->wfc_obj = &m_objs[selection_tile];
 		}
-
-		/// Make all four Neighbours recalculate entropy
 		
-		// Right Side
-		if (CHECK_TILE_RIGHT(selection))
-			(TILE_RIGHT(selection))->computePossibleTiles();
+		{
+			PROFILE_SCOPE("Recalculate entropy");
+			/// Make all four Neighbours recalculate entropy
+			
+			// Right Side
+			if (CHECK_TILE_RIGHT(selection))
+				(TILE_RIGHT(selection))->computePossibleTiles();
 
-		// UP
-		if (CHECK_TILE_UP(selection))
-			(TILE_UP(selection))->computePossibleTiles();
+			// UP
+			if (CHECK_TILE_UP(selection))
+				(TILE_UP(selection))->computePossibleTiles();
 
-		// Left Side
-		if (CHECK_TILE_LEFT(selection))
-			(TILE_LEFT(selection))->computePossibleTiles();
+			// Left Side
+			if (CHECK_TILE_LEFT(selection))
+				(TILE_LEFT(selection))->computePossibleTiles();
 
-		// DOWN
-		if (CHECK_TILE_DOWN(selection))
-			(TILE_DOWN(selection))->computePossibleTiles();
+			// DOWN
+			if (CHECK_TILE_DOWN(selection))
+				(TILE_DOWN(selection))->computePossibleTiles();
+		}
 	}
 
 	std::vector<uint64_t> WFC_Grid_Object::computePossibleTiles() {
@@ -215,7 +232,8 @@ namespace WFC {
 			[&][*][#][*][&]
 			[&][&][*][&][&]
 		*/
-
+		PROFILE_FUNC();
+		std::this_thread::sleep_for(1ns);
 		std::array<std::vector<uint64_t>, 4> tiles;
 		uint16_t side_mask = 0;
 		// Right Side
@@ -255,10 +273,14 @@ namespace WFC {
 					for (int k = 0; k < tiles[2].size(); k++) {
 						for (int l = 0; l < tiles[3].size(); l++) {
 							if (!((WFC::wfc->m_objs[ii].mask[0] & tiles[0][i]) &&
-								  (WFC::wfc->m_objs[ii].mask[1] & tiles[1][i]) && 
-								  (WFC::wfc->m_objs[ii].mask[2] & tiles[2][i]) &&
-								  (WFC::wfc->m_objs[ii].mask[3] & tiles[3][i])))
+								  (WFC::wfc->m_objs[ii].mask[1] & tiles[1][j]) && 
+								  (WFC::wfc->m_objs[ii].mask[2] & tiles[2][k]) &&
+								  (WFC::wfc->m_objs[ii].mask[3] & tiles[3][l])))
 								continue;
+							if (!possible_tiles.empty())
+								if (WFC::wfc->m_objs[ii].index == possible_tiles.back())
+									continue;
+							
 							possible_tiles.push_back(WFC::wfc->m_objs[ii].index);
 						}
 					}
@@ -272,15 +294,17 @@ namespace WFC {
 	}
 
 	std::vector<uint64_t> WFC_Grid_Object::ComputeNeighbour(WFC_Grid_Object* Neighbour, Side main_side) {
-
+		PROFILE_FUNC();
 		std::vector<uint64_t> tiles;
 		auto wfc = WFC::wfc;
 		
 		// The tile has already collapsed
 		if (Neighbour->wfc_obj) {
-			tiles.push_back(Neighbour->wfc_obj->index);
+			tiles.push_back(Neighbour->wfc_obj->mask[(uint)main_side]);
 			return tiles;
 		}
+
+		// TODO: Fix this
 
 		uint16_t toCheckSide = 0;
 		// Add 1 (1 << 0) OR (true) to the side mask
@@ -291,20 +315,21 @@ namespace WFC {
 
 		for (int i = 0; i < wfc->m_objs.size(); i++) {
 			uint16_t sides = 0;
+			// Available mask for side
 			uint64_t mask = 0;
 			// Right Side
 			if (toCheckSide & 1) {
 				auto obj = TILE_RIGHT(Neighbour);
 				WFC_CHECK(0)
 			} else {
-				sides |= 1 << 0;
+				ADD_TO_MASK_AND_SIDE(0);
 			}
 			// UP
 			if (toCheckSide & 2) {
 				auto obj = TILE_UP(Neighbour);
 				WFC_CHECK(1)
 			} else {
-				sides |= 1 << 1;
+				ADD_TO_MASK_AND_SIDE(1);
 			}
 
 			// Left Side
@@ -312,7 +337,7 @@ namespace WFC {
 				auto obj = TILE_LEFT(Neighbour);
 				WFC_CHECK(2)
 			} else {
-				sides |= 1 << 2;
+				ADD_TO_MASK_AND_SIDE(2);
 			}
 
 			// DOWN
@@ -320,10 +345,8 @@ namespace WFC {
 				auto obj = TILE_DOWN(Neighbour);
 				WFC_CHECK(3)
 			} else {
-				sides |= 1 << 3;
+				ADD_TO_MASK_AND_SIDE(3);
 			}
-
-			mask = wfc->m_objs[i].mask[(uint)main_side];
 			
 			if (sides == 15)
 				tiles.push_back(mask);

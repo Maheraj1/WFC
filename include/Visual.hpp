@@ -10,7 +10,7 @@ namespace WFC {
 	struct Image {
 		SDL_Texture* tex;
 		int size[2];
-		void Generate(std::string path);
+		static void Generate(std::string path);
 		~Image();
 	};
 

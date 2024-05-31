@@ -1,15 +1,15 @@
-Version: "0.1a"
-ImageFolderBasePath: "images"
+Version: 0.1a
+ImageFolderBasePath: images
 OBJECTS:
-  - ID: "Straight"
-    ROTATION: 10
+  - ID: Straight
+    ROTATION: 3
     MASK: [1, 2, 1, 2]
-  - ID: "CrossRoad"
+  - ID: CrossRoad
     ROTATION: 1
     MASK: [2, 2, 2, 2]
-  - ID: "Empty"
+  - ID: Empty
     ROTATION: 1
     MASK: [1, 1, 1, 1]
-  - ID: "RightTurn"
-    ROTATION: 1
+  - ID: RightTurn
+    ROTATION: 15
     MASK: [2, 1, 1, 2]

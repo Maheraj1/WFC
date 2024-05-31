@@ -3,8 +3,11 @@
 #include <chrono>
 #include <fstream>
 
-#define PROFILE_SCOPE(name) InstrumentalTimmer timmer##__LINE__(name)
-#define PROFILE_FUNC() SCOPE_TIMMER(__FUNCSIG__)
+#define COMBINE(x, y) x##y
+#define PROFILE_SCOPE(name) InstrumentationTimer COMBINE(timmer, __LINE__) (name)
+#define PROFILE_FUNC() PROFILE_SCOPE( __FUNCTION__ )
+#define START_SESSION(name) Profile_Instrument::Get().BeginSession(name); 
+#define END_SESSION Profile_Instrument::Get().EndSession(); 
 
 // Modified version of https://gist.github.com/TheCherno/31f135eea6ee729ab5f26a6908eb3a5e
 
