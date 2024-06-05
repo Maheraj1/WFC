@@ -3,7 +3,7 @@ include ext/ext.mk
 CXX = clang++
 MODE = -g3
 _OS = $(shell uname)
-_OBJ = libWFC
+_OBJ = WFC
 OBJ = 
 
 SRC = $(wildcard src/**/*.cpp) $(wildcard src/*.cpp)

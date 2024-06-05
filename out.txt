@@ -1,4 +1,0 @@
-Built Visual.o
-Built ImLog.o
-Built main.o
-Built WFC.o

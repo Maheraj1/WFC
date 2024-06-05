@@ -7,6 +7,7 @@
 #include "SDL2/SDL_image.h"
 #include "SDL2/SDL_keyboard.h"
 #include "SDL2/SDL_render.h"
+#include "SDL2/SDL_timer.h"
 #include "SDL2/SDL_video.h"
 #include "WFC.hpp"
 #include <cstddef>
@@ -16,6 +17,7 @@
 namespace WFC {
 	Visual* Visual::s_instance = nullptr;
 	static int ScreenSize = 0;
+	static int fps = 40;
 
 	void gridToSdl(const std::pair<uint, uint> gridPoint, int gridSize,
 		 int screenSize, std::pair<uint, uint>& sdl2Point) {
@@ -32,8 +34,7 @@ namespace WFC {
 		}
 
 		window = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, Size, Size, 0);
-		renderer = SDL_CreateRenderer(window, -1, 
-			SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE | SDL_RENDERER_ACCELERATED);
+		renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_TARGETTEXTURE | SDL_RENDERER_ACCELERATED);
 
 		ScreenSize = Size;
 	}
@@ -46,6 +47,7 @@ namespace WFC {
 		bool quit = false;
 
 		while (!quit) {
+			auto start = SDL_GetTicks64();
 			SDL_RenderClear(renderer);
 
 			auto wfc = ::WFC::WFC::wfc;
@@ -78,6 +80,15 @@ namespace WFC {
 			}
 
 			SDL_RenderPresent(renderer);
+			auto end = SDL_GetTicks64();
+			
+			if ((end - start) < 1000/fps)
+				SDL_Delay(1000/fps - (end - start));
+			
+			if ((end - start) != 0) {
+				std::cout << 1.0f/(end - start) << "\r";
+				std::cout.flush();
+			}
 		}
 	}
 

@@ -8,7 +8,7 @@
 			"name": "Debug",
 			"type": "cppdbg",
 			"request": "launch",
-			"program": "${workspaceFolder}/libWFC",
+			"program": "${workspaceFolder}/WFC",
 			"args": [],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",

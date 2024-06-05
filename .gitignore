@@ -1,3 +1,6 @@
-.cache
+.cache/**
 *.o
 *.dylib
+*.dll
+*.so
+**/WFC

@@ -179,10 +179,10 @@ namespace WFC {
 		WFC_Grid_Object* selection = nullptr;
 		
 		{
-			PROFILE_SCOPE("Tile Selection");
+			// PROFILE_SCOPE("Tile Selection");
 			// Select one object tile from list of similar entropy
 
-			std::uniform_int_distribution<uint64_t> tileToCollapse_uid(0, objs.size());
+			std::uniform_int_distribution<uint64_t> tileToCollapse_uid(0, objs.size()-1);
 			std::mt19937_64 engine;
 			selection = objs[tileToCollapse_uid(engine)];
 
@@ -198,7 +198,7 @@ namespace WFC {
 		}
 		
 		{
-			PROFILE_SCOPE("Recalculate entropy");
+			// PROFILE_SCOPE("Recalculate entropy");
 			/// Make all four Neighbours recalculate entropy
 			
 			// Right Side
@@ -295,6 +295,7 @@ namespace WFC {
 
 	std::vector<uint64_t> WFC_Grid_Object::ComputeNeighbour(WFC_Grid_Object* Neighbour, Side main_side) {
 		PROFILE_FUNC();
+		std::this_thread::sleep_for(1ns);
 		std::vector<uint64_t> tiles;
 		auto wfc = WFC::wfc;
 		
